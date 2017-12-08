@@ -94,6 +94,54 @@ int main(int argc, const char** argv) {
 		//pyrMeanShiftFiltering(galleryImages[i], mean_shift_image, 40, 30, 2);  // input, output, sp (spatial window radius), sr (colour window radius)
 		//floodFillPostprocess(mean_shift_image, Scalar::all(2));
 		
+		int currentMaxColor = 0;
+		Mat image = galleryImages[i];
+		vector<int> maxColorValue(3);
+		vector<vector<vector<int>>> colorCounter(256, vector<vector<int>>(256, vector<int>(256, 0)));
+		for (int y = 0;y<galleryImages[i].rows;y++)
+		{
+			for (int x = 0;x<galleryImages[i].cols;x++)
+			{
+				// get pixel
+				Vec3b color = image.at<Vec3b>(Point(x, y));
+				colorCounter[color[0]][color[1]][color[2]]++;
+				if (colorCounter[color[0]][color[1]][color[2]] > currentMaxColor) {
+					currentMaxColor = colorCounter[color[0]][color[1]][color[2]];
+					maxColorValue[0] = color[0];
+					maxColorValue[1] = color[1];
+					maxColorValue[2] = color[2];
+				}
+			}
+		}
+
+		// Most common BGR value
+		printf("%d, %d, %d\n", maxColorValue[0], maxColorValue[1], maxColorValue[2]);
+
+
+		Mat image1 = galleryImages[i];
+
+		for (int y = 0;y<galleryImages[i].rows;y++)
+		{
+			for (int x = 0;x<galleryImages[i].cols;x++)
+			{
+				// get pixel
+				Vec3b color = image1.at<Vec3b>(Point(x, y));
+				if (color[0] > 150 && color[1] > 150 && color[2] > 150)
+				{
+					color[0] = 0;
+					color[1] = 0;
+					color[2] = 0;
+				}
+				else
+				{
+					color[0] = 255;  // color.val[0]
+					color[1] = 255;
+					color[2] = 255;
+				}
+				// set pixel
+				image1.at<Vec3b>(Point(x, y)) = color;
+			}
+		}
 
 		// Write image
 		string outputName = "OutputImage";
@@ -101,6 +149,8 @@ int main(int argc, const char** argv) {
 		outputName.append(".jpg");
 		imwrite(outputName, galleryImages[i]);  // image[i]
 	}
+
+	cin.ignore();
 }
 
 
