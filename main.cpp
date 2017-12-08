@@ -118,38 +118,44 @@ int main(int argc, const char** argv) {
 		printf("%d, %d, %d\n", maxColorValue[0], maxColorValue[1], maxColorValue[2]);
 
 
-		Mat image1 = galleryImages[i];
-
-		for (int y = 0;y<galleryImages[i].rows;y++)
-		{
-			for (int x = 0;x<galleryImages[i].cols;x++)
-			{
+		Mat wallImage = galleryImages[i];  // Copy by reference
+		for (int y = 0;y<galleryImages[i].rows;y++){
+			for (int x = 0;x<galleryImages[i].cols;x++){
 				// get pixel
-				Vec3b color = image1.at<Vec3b>(Point(x, y));
-				if (color[0] > 150 && color[1] > 150 && color[2] > 150)
-				{
+				Vec3b color = wallImage.at<Vec3b>(Point(x, y));
+				if (color[0] < maxColorValue[0] + 15 && color[1] < maxColorValue[1] + 15 && color[2] < maxColorValue[2] + 15 &&
+					color[0] > maxColorValue[0] - 15 && color[1] > maxColorValue[1] - 15 && color[2] > maxColorValue[2] - 15){
 					color[0] = 0;
 					color[1] = 0;
 					color[2] = 0;
 				}
-				else
-				{
+				else{
 					color[0] = 255;  // color.val[0]
 					color[1] = 255;
 					color[2] = 255;
 				}
 				// set pixel
-				image1.at<Vec3b>(Point(x, y)) = color;
+				wallImage.at<Vec3b>(Point(x, y)) = color;
 			}
 		}
+		// Convert to greyscale image format
+		Mat grey_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+		cvtColor(galleryImages[i], grey_image, CV_BGR2GRAY); 
+		// Binary threshold
+		Mat binary_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+		threshold(grey_image, binary_image, 128, 255, THRESH_BINARY);
+		// Opening with 7x7 kernel
+		Mat seven_by_seven_element(7, 7, CV_8U, Scalar(1));  // Seven by seven
+		Mat opened_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+		morphologyEx(binary_image, opened_image, MORPH_OPEN, seven_by_seven_element);
 
 		// Write image
 		string outputName = "OutputImage";
 		outputName.append(to_string(i + 1));
 		outputName.append(".jpg");
-		imwrite(outputName, galleryImages[i]);  // image[i]
+		imwrite(outputName, opened_image);  // image[i]
 	}
-
+	printf("Press enter to finish");
 	cin.ignore();
 }
 
