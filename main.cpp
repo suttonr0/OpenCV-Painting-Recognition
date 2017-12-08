@@ -158,9 +158,9 @@ int main(int argc, const char** argv) {
 		// Connected Components Analysis
 		Mat binary_image_copy = opened_image.clone();
 		findContours(binary_image_copy, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
-		Mat contours_image = Mat::zeros(binary_image.size(), CV_8UC3);
-		vector<vector<Point> > contours_poly(contours.size());  // MUST BE INITIALSIED AFTER CONTOURS ARE FOUND
+		vector<vector<Point>> contours_poly(contours.size());  // MUST BE INITIALSIED AFTER CONTOURS ARE FOUND
 		vector<Rect> boundRect(contours.size());  // MUST BE INITIALSIED AFTER CONTOURS ARE FOUND
+		vector<Mat> paintingMask; // To contain a mask image for each painting found
 		for (int contour_number = 0; (contour_number < (int)contours.size()); contour_number++)
 		{
 			approxPolyDP(Mat(contours[contour_number]), contours_poly[contour_number], 3, true);
@@ -168,26 +168,36 @@ int main(int argc, const char** argv) {
 			float areaOfContour = contourArea(contours[contour_number]);
 			printf("%f\n", areaOfContour);
 			
-			// Contour Area threshold
-			if (areaOfContour > 15000.0) {
+			if (areaOfContour > 15000.0) {  // Contour Area threshold
 				int bottomYCoord = boundRect[contour_number].y + boundRect[contour_number].height;
-				if (bottomYCoord < (galleryImages[i].rows - 2)) {
-					Scalar colour(rand() & 0xFF, rand() & 0xFF, rand() & 0xFF);
-					// drawContours(contours_image, contours, contour_number, colour, CV_FILLED, 8, hierarchy);
+				if (bottomYCoord < (galleryImages[i].rows - 2)) {  // Make sure it's not the ground
+					//Scalar colour(rand() & 0xFF, rand() & 0xFF, rand() & 0xFF);
+					Scalar colour(0xFF, 0xFF, 0xFF);
+					Mat contours_image = Mat::zeros(binary_image.size(), CV_8UC3);
+					drawContours(contours_image, contours, contour_number, colour, CV_FILLED, 8, hierarchy);
+					Mat temp = contours_image.clone();
+					Mat temp_grey_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+					cvtColor(temp, temp_grey_image, CV_BGR2GRAY);
+					// Binary threshold
+					Mat temp_binary_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+					threshold(temp_grey_image, temp_binary_image, 128, 255, THRESH_BINARY);
+					paintingMask.push_back(temp_binary_image);
 					rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
 				}
 			}
-
 		}
 		
 		//You can check whether a contour with index i is inside another by checking if hierarchy[0,i,3] equals -1 or not. 
 		//If it is different from -1, then your contour is inside another.
 
-		// Write image
-		string outputName = "OutputImage";
-		outputName.append(to_string(i + 1));
-		outputName.append(".jpg");
-		imwrite(outputName, galleryImages[i]);  // image[i]
+		for (int j = 0; j < paintingMask.size(); j++) {
+			// Write image
+			string outputName = "OutputImage";
+			outputName.append(to_string(i + 1));
+			outputName.append(to_string(j + 1));
+			outputName.append(".jpg");
+			imwrite(outputName, paintingMask[j]);  // image[i]
+		}
 	}
 	printf("Press enter to finish");
 	cin.ignore();
