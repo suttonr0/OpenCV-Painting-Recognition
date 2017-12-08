@@ -18,6 +18,10 @@ static void floodFillPostprocess(Mat&, const Scalar&);
 
 int main(int argc, const char** argv) {
 
+	// Contours
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+
 	// Setup strings for input image locations
 	char* gallery_file_location = "MediaGallery/";
 	char* gallery_files[] = {
@@ -73,13 +77,14 @@ int main(int argc, const char** argv) {
 		"MeanImage3.jpg",
 		"MeanImage4.jpg"
 	};
+	Mat* mgalleryImages = new Mat[number_of_gallery];  // Matrix of images
 	// Load images
 	for (int i = 0; i < number_of_gallery; i++) {
 		string filename(mean_file_location);
 		filename.append(mean_files[i]); // Creating path to image
-		galleryImages[i] = imread(filename, -1);  // Read file into image matrix
-		if (galleryImages[i].empty()) {
-			cout << "Could not open " << galleryImages[i] << endl;
+		mgalleryImages[i] = imread(filename, -1);  // Read file into image matrix
+		if (mgalleryImages[i].empty()) {
+			cout << "Could not open " << mgalleryImages[i] << endl;
 			return -1;
 		}
 	}
@@ -95,12 +100,12 @@ int main(int argc, const char** argv) {
 		//floodFillPostprocess(mean_shift_image, Scalar::all(2));
 		
 		int currentMaxColor = 0;
-		Mat image = galleryImages[i];
+		Mat image = mgalleryImages[i].clone();
 		vector<int> maxColorValue(3);
 		vector<vector<vector<int>>> colorCounter(256, vector<vector<int>>(256, vector<int>(256, 0)));
 		for (int y = 0;y<galleryImages[i].rows;y++)
 		{
-			for (int x = 0;x<galleryImages[i].cols;x++)
+			for (int x = 0;x < galleryImages[i].cols;x++)
 			{
 				// get pixel
 				Vec3b color = image.at<Vec3b>(Point(x, y));
@@ -117,10 +122,11 @@ int main(int argc, const char** argv) {
 		// Most common BGR value
 		printf("%d, %d, %d\n", maxColorValue[0], maxColorValue[1], maxColorValue[2]);
 
+		// Set all "wall" BGR values to zero, all others to 255
 
-		Mat wallImage = galleryImages[i];  // Copy by reference
-		for (int y = 0;y<galleryImages[i].rows;y++){
-			for (int x = 0;x<galleryImages[i].cols;x++){
+		Mat wallImage = mgalleryImages[i].clone();  // Copy by reference
+		for (int y = 0;y < galleryImages[i].rows;y++){
+			for (int x = 0;x < galleryImages[i].cols;x++){
 				// get pixel
 				Vec3b color = wallImage.at<Vec3b>(Point(x, y));
 				if (color[0] < maxColorValue[0] + 15 && color[1] < maxColorValue[1] + 15 && color[2] < maxColorValue[2] + 15 &&
@@ -140,7 +146,7 @@ int main(int argc, const char** argv) {
 		}
 		// Convert to greyscale image format
 		Mat grey_image = Mat(galleryImages[i].size(), galleryImages[i].type());
-		cvtColor(galleryImages[i], grey_image, CV_BGR2GRAY); 
+		cvtColor(wallImage, grey_image, CV_BGR2GRAY); 
 		// Binary threshold
 		Mat binary_image = Mat(galleryImages[i].size(), galleryImages[i].type());
 		threshold(grey_image, binary_image, 128, 255, THRESH_BINARY);
@@ -149,11 +155,39 @@ int main(int argc, const char** argv) {
 		Mat opened_image = Mat(galleryImages[i].size(), galleryImages[i].type());
 		morphologyEx(binary_image, opened_image, MORPH_OPEN, seven_by_seven_element);
 
+		// Connected Components Analysis
+		Mat binary_image_copy = opened_image.clone();
+		findContours(binary_image_copy, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
+		Mat contours_image = Mat::zeros(binary_image.size(), CV_8UC3);
+		vector<vector<Point> > contours_poly(contours.size());  // MUST BE INITIALSIED AFTER CONTOURS ARE FOUND
+		vector<Rect> boundRect(contours.size());  // MUST BE INITIALSIED AFTER CONTOURS ARE FOUND
+		for (int contour_number = 0; (contour_number < (int)contours.size()); contour_number++)
+		{
+			approxPolyDP(Mat(contours[contour_number]), contours_poly[contour_number], 3, true);
+			boundRect[contour_number] = boundingRect(Mat(contours_poly[contour_number]));
+			float areaOfContour = contourArea(contours[contour_number]);
+			printf("%f\n", areaOfContour);
+			
+			// Contour Area threshold
+			if (areaOfContour > 15000.0) {
+				int bottomYCoord = boundRect[contour_number].y + boundRect[contour_number].height;
+				if (bottomYCoord < (galleryImages[i].rows - 2)) {
+					Scalar colour(rand() & 0xFF, rand() & 0xFF, rand() & 0xFF);
+					// drawContours(contours_image, contours, contour_number, colour, CV_FILLED, 8, hierarchy);
+					rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
+				}
+			}
+
+		}
+		
+		//You can check whether a contour with index i is inside another by checking if hierarchy[0,i,3] equals -1 or not. 
+		//If it is different from -1, then your contour is inside another.
+
 		// Write image
 		string outputName = "OutputImage";
 		outputName.append(to_string(i + 1));
 		outputName.append(".jpg");
-		imwrite(outputName, opened_image);  // image[i]
+		imwrite(outputName, galleryImages[i]);  // image[i]
 	}
 	printf("Press enter to finish");
 	cin.ignore();
