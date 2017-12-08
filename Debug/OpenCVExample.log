@@ -1,0 +1,20 @@
+﻿  Video.cpp
+  Utilities.cpp
+  Region.cpp
+  Recognition.cpp
+c:\vision\opencvexample\recognition.cpp(460): warning C4474: 'sprintf' : too many arguments passed for format string
+  c:\vision\opencvexample\recognition.cpp(460): note: placeholders and their parameters expect 0 variadic arguments, but 2 were provided
+  main.cpp
+  Images.cpp
+  Histograms.cpp
+  Geometric.cpp
+  Features.cpp
+  Edges.cpp
+  CameraCalibration.cpp
+c:\vision\opencvexample\cameracalibration.cpp(307): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\time.h(505): note: see declaration of 'localtime'
+c:\vision\opencvexample\cameracalibration.cpp(326): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(1772): note: see declaration of 'sprintf'
+  Binary.cpp
+  Generating Code...
+opencv_world320d.lib(opencv_world320d.dll) : fatal error LNK1112: module machine type 'x64' conflicts with target machine type 'x86'
