@@ -13,15 +13,19 @@
 using namespace std;
 using namespace cv;
 
-int main(int argc, const char** argv){
-	
+
+static void floodFillPostprocess(Mat&, const Scalar&);
+
+int main(int argc, const char** argv) {
+
 	// Setup strings for input image locations
 	char* gallery_file_location = "MediaGallery/";
 	char* gallery_files[] = {
-		"Gallery1.jpg", 
+		"Gallery1.jpg",
 		"Gallery2.jpg",
-		"Gallery3.jpg"
-    };
+		"Gallery3.jpg",
+		"Gallery4.jpg"
+	};
 
 	// Load images
 	int number_of_gallery = sizeof(gallery_files) / sizeof(gallery_files[0]);  // 4 Images
@@ -41,7 +45,7 @@ int main(int argc, const char** argv){
 	char* painting_file_location = "MediaPaintings/";
 	char* painting_files[] = {
 		"Painting1.jpg",
-		"Painting2.jpg", 
+		"Painting2.jpg",
 		"Painting3.jpg",
 		"Painting4.jpg",
 		"Painting5.jpg",
@@ -61,21 +65,77 @@ int main(int argc, const char** argv){
 	}
 	cout << "Painting images opened successfully\n";
 
+	// REMOVE BEFORE FINAL SUBMISSION (JUST TO REDUCE COMPUTATION TIME)
+	char* mean_file_location = "MediaMeanShift/";
+	char* mean_files[] = {
+		"MeanImage1.jpg",
+		"MeanImage2.jpg",
+		"MeanImage3.jpg",
+		"MeanImage4.jpg"
+	};
+	// Load images
 	for (int i = 0; i < number_of_gallery; i++) {
+		string filename(mean_file_location);
+		filename.append(mean_files[i]); // Creating path to image
+		galleryImages[i] = imread(filename, -1);  // Read file into image matrix
+		if (galleryImages[i].empty()) {
+			cout << "Could not open " << galleryImages[i] << endl;
+			return -1;
+		}
+	}
+	cout << "Mean Shift images opened successfully\n";
+
+
+	for (int i = 0; i < number_of_gallery; i++) {
+
+		// COMMENTED OUT TO SAVE COMPUTATION TIME (UNCOMMENT FOR FINAL SUBMISSION)
+		//Mat mean_shift_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+		// Mean shift clustering/segmentation
+		//pyrMeanShiftFiltering(galleryImages[i], mean_shift_image, 40, 30, 2);  // input, output, sp (spatial window radius), sr (colour window radius)
+		//floodFillPostprocess(mean_shift_image, Scalar::all(2));
+		
+
 		// Write image
 		string outputName = "OutputImage";
 		outputName.append(to_string(i + 1));
 		outputName.append(".jpg");
 		imwrite(outputName, galleryImages[i]);  // image[i]
 	}
+}
 
-	for (int i = 0; i < number_of_painting; i++) {
-		// Write image
-		string outputName1 = "TestImage";
-		outputName1.append(to_string(i + 1));
-		outputName1.append(".jpg");
-		imwrite(outputName1, paintingImages[i]);  // image[i]
+
+// This routine colors the regions
+// Code taken from Open Source meanshift_segmentation.cpp (widely available online)
+static void floodFillPostprocess(Mat& img, const Scalar& colorDiff = Scalar::all(1))
+{
+	CV_Assert(!img.empty());
+	RNG rng = theRNG();
+	Mat mask(img.rows + 2, img.cols + 2, CV_8UC1, Scalar::all(0));
+	for (int y = 0; y < img.rows; y++)
+	{
+		for (int x = 0; x < img.cols; x++)
+		{
+			if (mask.at<uchar>(y + 1, x + 1) == 0)
+			{
+				Scalar newVal(rng(256), rng(256), rng(256));
+				floodFill(img, mask, Point(x, y), newVal, 0, colorDiff, colorDiff);
+			}
+		}
 	}
+	printf("Finished filling mean shift image");
+}
+
+
+
+	//for (int i = 0; i < number_of_painting; i++) {
+	//	// Write image
+	//	string outputName1 = "TestImage";
+	//	outputName1.append(to_string(i + 1));
+	//	outputName1.append(".jpg");
+	//	imwrite(outputName1, paintingImages[i]);  // image[i]
+	//}
+
+
 	//// Contours
 	//vector<vector<Point>> contours;
 	//vector<Vec4i> hierarchy;
@@ -295,5 +355,5 @@ int main(int argc, const char** argv){
 
 	//cout << "Type something and press enter to end: ";
 	//cin.ignore();
-}
+
 
