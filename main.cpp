@@ -182,7 +182,9 @@ int main(int argc, const char** argv) {
 					threshold(temp_grey_image, temp_binary_image, 128, 255, THRESH_BINARY);
 					temp_binary_image.convertTo(temp_binary_image, CV_8UC1);
 					paintingMask.push_back(temp_binary_image);
-					rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
+					Scalar foundColour(0xFF, 0x00, 0x00);
+					drawContours(galleryImages[i], contours, contour_number, foundColour, 3, 8, hierarchy);
+					//rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
 				}
 			}
 		}
@@ -190,27 +192,13 @@ int main(int argc, const char** argv) {
 
 		Mat hsv_image;
 		cvtColor(galleryImages[i], hsv_image, COLOR_BGR2HSV);
-
-		Mat hsv_painting1;
-		cvtColor(paintingImages[0], hsv_painting1, COLOR_BGR2HSV);
-
-		Mat hsv_painting2;
-		cvtColor(paintingImages[1], hsv_painting2, COLOR_BGR2HSV);
-
-		Mat hsv_painting3;
-		cvtColor(paintingImages[2], hsv_painting3, COLOR_BGR2HSV);
-
-		Mat hsv_painting4;
-		cvtColor(paintingImages[3], hsv_painting4, COLOR_BGR2HSV);
-
-		Mat hsv_painting5;
-		cvtColor(paintingImages[4], hsv_painting5, COLOR_BGR2HSV);
-
-		Mat hsv_painting6;
-		cvtColor(paintingImages[5], hsv_painting6, COLOR_BGR2HSV);
-
+		Mat hsv_painting[6];
+		for (int j = 0; j < 6; j++) {
+			cvtColor(paintingImages[j], hsv_painting[j], COLOR_BGR2HSV);
+		}
+		
 		// Histogram setup variables
-		int h_bins = 50; int s_bins = 60;
+		int h_bins = 100; int s_bins = 120;  // Hue and saturation bins
 		int histSize[] = { h_bins, s_bins };
 		// hue varies from 0 to 179, saturation from 0 to 255
 		float h_ranges[] = { 0, 180 };
@@ -220,66 +208,53 @@ int main(int argc, const char** argv) {
 		// ---------------------------
 		
 		MatND hist_base;
-		MatND hist_painting1;
-		MatND hist_painting2;
-		MatND hist_painting3;
-		MatND hist_painting4;
-		MatND hist_painting5;
-		MatND hist_painting6;
+		MatND hist_painting[6];
 
-		calcHist(&hsv_painting1, 1, channels, Mat(), hist_painting1, 2, histSize, ranges, true, false);
-		normalize(hist_painting1, hist_painting1, 0, 1, NORM_MINMAX, -1, Mat());
-
-		calcHist(&hsv_painting2, 1, channels, Mat(), hist_painting2, 2, histSize, ranges, true, false);
-		normalize(hist_painting2, hist_painting2, 0, 1, NORM_MINMAX, -1, Mat());
-
-		calcHist(&hsv_painting3, 1, channels, Mat(), hist_painting3, 2, histSize, ranges, true, false);
-		normalize(hist_painting3, hist_painting3, 0, 1, NORM_MINMAX, -1, Mat());
-
-		calcHist(&hsv_painting4, 1, channels, Mat(), hist_painting4, 2, histSize, ranges, true, false);
-		normalize(hist_painting4, hist_painting4, 0, 1, NORM_MINMAX, -1, Mat());
-
-		calcHist(&hsv_painting5, 1, channels, Mat(), hist_painting5, 2, histSize, ranges, true, false);
-		normalize(hist_painting5, hist_painting5, 0, 1, NORM_MINMAX, -1, Mat());
-
-		calcHist(&hsv_painting6, 1, channels, Mat(), hist_painting6, 2, histSize, ranges, true, false);
-		normalize(hist_painting6, hist_painting6, 0, 1, NORM_MINMAX, -1, Mat());
-
+		for (int j = 0; j < 6; j++) {
+			calcHist(&hsv_painting[j], 1, channels, Mat(), hist_painting[j], 2, histSize, ranges, true, false);
+			normalize(hist_painting[j], hist_painting[j], 0, 1, NORM_MINMAX, -1, Mat());
+		}
 
 		for (int j = 0; j < paintingMask.size(); j++) {
 			calcHist(&hsv_image, 1, channels, paintingMask[j], hist_base, 2, histSize, ranges, true, false);  // Uses mask for each painting
 			normalize(hist_base, hist_base, 0, 1, NORM_MINMAX, -1, Mat());
+			int compare_method = 0;  // Correlation method
+			double hist_comparison[6];
 
-			for (int k = 0; k < 4; k++) {
-				int compare_method = k;
-				double hist_comparison_p1 = compareHist(hist_base, hist_painting1, compare_method);
-				double hist_comparison_p2 = compareHist(hist_base, hist_painting2, compare_method);
-				double hist_comparison_p3 = compareHist(hist_base, hist_painting3, compare_method);
-				double hist_comparison_p4 = compareHist(hist_base, hist_painting4, compare_method);
-				double hist_comparison_p5 = compareHist(hist_base, hist_painting5, compare_method);
-				double hist_comparison_p6 = compareHist(hist_base, hist_painting6, compare_method);
-				printf("Gallery Painting [%d]. Gallery Number [%d]. Method [%d]:\nPainting 1: %f\nPainting 2: %f\nPainting 3: %f\nPainting 4: %f\nPainting 5: %f\nPainting 6: %f\n", j, i, k, 
-					hist_comparison_p1, hist_comparison_p2, hist_comparison_p3, hist_comparison_p4, hist_comparison_p5, hist_comparison_p6);
+			printf("Gallery Painting [%d]. Gallery Number [%d]:\n", j, i);
+			for (int k = 0; k < 6; k++) {
+				hist_comparison[k] = compareHist(hist_base, hist_painting[k], compare_method);
+				printf("Painting [%d]: %f\n", k, hist_comparison[k]);
 			}
 		}
 
+
+		for (int contour_number = 0; (contour_number < (int)contours.size()); contour_number++)
+		{
+			approxPolyDP(Mat(contours[contour_number]), contours_poly[contour_number], 3, true);
+			boundRect[contour_number] = boundingRect(Mat(contours_poly[contour_number]));
+			float areaOfContour = contourArea(contours[contour_number]);
+
+			if (areaOfContour > 15000.0) {  // Contour Area threshold
+				int bottomYCoord = boundRect[contour_number].y + boundRect[contour_number].height;
+				if (bottomYCoord < (galleryImages[i].rows - 2)) {  // Make sure it's not the ground
+					Scalar foundColour(0xFF, 0x00, 0x00);
+					putText(galleryImages[i], "TEST STRING", Point(boundRect[contour_number].x, boundRect[contour_number].y), FONT_HERSHEY_SIMPLEX, 1, foundColour, 1, 8, false);
+				}
+			}
+		}
 
 		// Bitwise AND to get paiting from original image
 		//for (int j = 0; j < paintingMask.size(); j++) {
 		//	bitwise_and(paintingMask[j], galleryImages[i], paintingMask[j]);
 		//}
 
-		//You can check whether a contour with index i is inside another by checking if hierarchy[0,i,3] equals -1 or not. 
-		//If it is different from -1, then your contour is inside another.
+		// Write image
+		string outputName = "OutputImage";
+		outputName.append(to_string(i + 1));
+		outputName.append(".jpg");
+		imwrite(outputName, galleryImages[i]);  // image[i]
 
-		for (int j = 0; j < paintingMask.size(); j++) {
-			// Write image
-			string outputName = "OutputImage";
-			outputName.append(to_string(i + 1));
-			outputName.append(to_string(j + 1));
-			outputName.append(".jpg");
-			imwrite(outputName, paintingMask[j]);  // image[i]
-		}
 	}
 	printf("Press enter to finish");
 	cin.ignore();
