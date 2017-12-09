@@ -182,7 +182,7 @@ int main(int argc, const char** argv) {
 					threshold(temp_grey_image, temp_binary_image, 128, 255, THRESH_BINARY);
 					temp_binary_image.convertTo(temp_binary_image, CV_8UC1);
 					paintingMask.push_back(temp_binary_image);
-					Scalar foundColour(0xFF, 0x00, 0x00);
+					Scalar foundColour(0x00, 0xFF, 0x00);
 					drawContours(galleryImages[i], contours, contour_number, foundColour, 3, 8, hierarchy);
 					//rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
 				}
@@ -214,21 +214,29 @@ int main(int argc, const char** argv) {
 			calcHist(&hsv_painting[j], 1, channels, Mat(), hist_painting[j], 2, histSize, ranges, true, false);
 			normalize(hist_painting[j], hist_painting[j], 0, 1, NORM_MINMAX, -1, Mat());
 		}
-
+	
+		int* maxCorrelation = new int[paintingMask.size()]; // Will store the painting index for the max correlation
+		
 		for (int j = 0; j < paintingMask.size(); j++) {
 			calcHist(&hsv_image, 1, channels, paintingMask[j], hist_base, 2, histSize, ranges, true, false);  // Uses mask for each painting
 			normalize(hist_base, hist_base, 0, 1, NORM_MINMAX, -1, Mat());
 			int compare_method = 0;  // Correlation method
 			double hist_comparison[6];
-
 			printf("Gallery Painting [%d]. Gallery Number [%d]:\n", j, i);
+			double currentMaxCorr = 0;  // initialise current max correlation value to zero
+			maxCorrelation[j] = 0; // index of painting with max correlation initialised to zero
 			for (int k = 0; k < 6; k++) {
 				hist_comparison[k] = compareHist(hist_base, hist_painting[k], compare_method);
+				if (hist_comparison[k] > currentMaxCorr) {
+					currentMaxCorr = hist_comparison[k];
+					maxCorrelation[j] = k;
+				}
 				printf("Painting [%d]: %f\n", k, hist_comparison[k]);
 			}
+			printf("Max correlation found for painting %i\n", maxCorrelation[j]);
 		}
 
-
+		int correlationCounter = 0;  // A counter to iterate through the number of paintings for the current gallery image
 		for (int contour_number = 0; (contour_number < (int)contours.size()); contour_number++)
 		{
 			approxPolyDP(Mat(contours[contour_number]), contours_poly[contour_number], 3, true);
@@ -238,16 +246,109 @@ int main(int argc, const char** argv) {
 			if (areaOfContour > 15000.0) {  // Contour Area threshold
 				int bottomYCoord = boundRect[contour_number].y + boundRect[contour_number].height;
 				if (bottomYCoord < (galleryImages[i].rows - 2)) {  // Make sure it's not the ground
-					Scalar foundColour(0xFF, 0x00, 0x00);
-					putText(galleryImages[i], "TEST STRING", Point(boundRect[contour_number].x, boundRect[contour_number].y), FONT_HERSHEY_SIMPLEX, 1, foundColour, 1, 8, false);
+					Scalar foundColour(0x00, 0xFF, 0x00);
+					string foundPaintingString = "Painting ";
+					foundPaintingString.append(to_string(maxCorrelation[correlationCounter] + 1));
+					correlationCounter++;
+					putText(galleryImages[i], foundPaintingString, Point(boundRect[contour_number].x, boundRect[contour_number].y), FONT_HERSHEY_SIMPLEX, 1, foundColour, 2, 8, false);
 				}
 			}
 		}
+
+		delete[] maxCorrelation;
 
 		// Bitwise AND to get paiting from original image
 		//for (int j = 0; j < paintingMask.size(); j++) {
 		//	bitwise_and(paintingMask[j], galleryImages[i], paintingMask[j]);
 		//}
+
+		// Draw ground truth
+		Scalar groundColour(0xFF, 0x00, 0x00);
+		if (i == 0) {
+			// Painting 2
+			line(galleryImages[i], Point(212, 261), Point(445, 255), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(445, 255), Point(428, 725), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(428, 725), Point(198, 673), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(198, 673), Point(212, 261), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 2", Point(198, 673), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+			
+			// Painting 1
+			line(galleryImages[i], Point(686, 377), Point(1050, 361), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1050, 361), Point(1048, 705), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1048, 705), Point(686, 652), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(686, 652), Point(686, 377), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 1", Point(686, 652), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+		}
+
+		else if (i == 1) {
+			// Painting 3
+			line(galleryImages[i], Point(252, 279), Point(691, 336), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(691, 336), Point(695, 662), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(695, 662), Point(258, 758), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(258, 758), Point(252, 279), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 3", Point(258, 788), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+
+			// Painting 2
+			line(galleryImages[i], Point(897, 173), Point(1063, 234), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1063, 234), Point(1079, 672), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1079, 672), Point(917, 739), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(917, 739), Point(897, 173), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 2", Point(917, 769), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+
+			// Painting 1
+			line(galleryImages[i], Point(1174, 388), Point(1221, 395), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1221, 395), Point(1216, 544), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1216, 544), Point(1168, 555), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1168, 555), Point(1174, 388), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 1", Point(1118, 585), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+
+		}
+
+		else if (i == 2) {
+			// Painting 4
+			line(galleryImages[i], Point(68, 329), Point(350, 337), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(350, 337), Point(351, 545), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(351, 545), Point(75, 558), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(75, 558), Point(68, 329), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 4", Point(75, 588), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+
+			// Painting 5
+			line(galleryImages[i], Point(629, 346), Point(877, 350), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(877, 350), Point(873, 517), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(873, 517), Point(627, 530), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(627, 530), Point(629, 346), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 5", Point(627, 560), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+
+			// Painting 6
+			line(galleryImages[i], Point(1057, 370), Point(1187, 374), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1187, 374), Point(1182, 487), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1182, 487), Point(1053, 493), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1053, 493), Point(1057, 370), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 6", Point(1053, 523), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+		}
+
+		else if (i == 3) {
+			// Painting 4
+			line(galleryImages[i], Point(176, 348), Point(298, 347), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(298, 347), Point(307, 481), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(307, 481), Point(184, 475), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(184, 475), Point(176, 348), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 4", Point(184, 505), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+
+			// Painting 5
+			line(galleryImages[i], Point(469, 343), Point(690, 338), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(690, 338), Point(692, 495), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(692, 495), Point(472, 487), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(472, 487), Point(469, 343), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 5", Point(472, 517), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+			
+			// Painting 6
+			line(galleryImages[i], Point(924, 349), Point(1161, 344), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1161, 344), Point(1156, 495), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(1156, 495), Point(924, 488), groundColour, 3, 8, 0);
+			line(galleryImages[i], Point(924, 488), Point(924, 349), groundColour, 3, 8, 0);
+			putText(galleryImages[i], "Painting 6", Point(924, 518), FONT_HERSHEY_SIMPLEX, 1, groundColour, 2, 8, false);
+		}
 
 		// Write image
 		string outputName = "OutputImage";

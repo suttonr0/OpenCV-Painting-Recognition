@@ -1,6 +1,6 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (Assignment 2 Copy 2.vcxproj, OpenCVExample.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   main.cpp
 c:\.trinity 4\cs4053 computer vision\assignment 3\main.cpp(168): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\.trinity 4\cs4053 computer vision\assignment 3\main.cpp(236): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\.trinity 4\cs4053 computer vision\assignment 3\main.cpp(244): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   OpenCVExample.vcxproj -> C:\.Trinity 4\CS4053 Computer Vision\Assignment 3\x64\Debug\Assignment 3.exe
   OpenCVExample.vcxproj -> C:\.Trinity 4\CS4053 Computer Vision\Assignment 3\x64\Debug\Assignment 3.pdb (Partial PDB)
