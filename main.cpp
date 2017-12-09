@@ -15,6 +15,7 @@ using namespace cv;
 
 
 static void floodFillPostprocess(Mat&, const Scalar&);
+void display_image(Mat&);
 
 int main(int argc, const char** argv) {
 
@@ -175,19 +176,20 @@ int main(int argc, const char** argv) {
 					Mat contours_image = Mat::zeros(binary_image.size(), CV_8UC3);
 					drawContours(contours_image, contours, contour_number, colour, CV_FILLED, 8, hierarchy);
 					Mat temp = contours_image.clone();
-					Mat temp_grey_image;
-					cvtColor(temp, temp_grey_image, CV_BGR2GRAY);
+					//Mat temp_grey_image;
+					//cvtColor(temp, temp_grey_image, CV_BGR2GRAY);
 					//// Binary threshold
-					Mat temp_binary_image;
-					threshold(temp_grey_image, temp_binary_image, 128, 255, THRESH_BINARY);
-					temp_binary_image.convertTo(temp_binary_image, CV_8UC1);
-					paintingMask.push_back(temp_binary_image);
+					//Mat temp_binary_image;
+					//threshold(temp_grey_image, temp_binary_image, 128, 255, THRESH_BINARY);
+					//temp_binary_image.convertTo(temp_binary_image, CV_8UC1);
+					paintingMask.push_back(temp);
 					rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
 				}
 			}
 		}
 
 
+		/*
 		Mat hsv_image;
 		cvtColor(galleryImages[i], hsv_image, COLOR_BGR2HSV);
 
@@ -263,12 +265,29 @@ int main(int argc, const char** argv) {
 			}
 		}
 
-
+		*/
 		// Bitwise AND to get paiting from original image
-		//for (int j = 0; j < paintingMask.size(); j++) {
-		//	bitwise_and(paintingMask[j], galleryImages[i], paintingMask[j]);
-		//}
+		for (int j = 0; j < paintingMask.size(); j++) {
+			bitwise_and(paintingMask[j], galleryImages[i], paintingMask[j]);
 
+			Mat gallery_grey;
+			cvtColor(paintingMask[j], gallery_grey, CV_BGR2GRAY);
+			Mat gallery_edge;
+			Canny(gallery_grey, gallery_edge, 50, 200, 3);
+			display_image(gallery_edge);
+
+			Mat display_gal;
+			cvtColor(gallery_edge, display_gal, CV_GRAY2BGR);
+
+			vector<Vec4i> lines;
+			HoughLinesP(gallery_edge, lines, 1, CV_PI / 180, 50, 50, 10);
+			for (size_t i = 0; i < lines.size(); i++) {
+				Vec4i l = lines[i];
+				line(display_gal, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
+			}
+
+			display_image(display_gal);
+		}
 		//You can check whether a contour with index i is inside another by checking if hierarchy[0,i,3] equals -1 or not. 
 		//If it is different from -1, then your contour is inside another.
 
@@ -307,7 +326,11 @@ static void floodFillPostprocess(Mat& img, const Scalar& colorDiff = Scalar::all
 	printf("Finished filling mean shift image");
 }
 
-
+void display_image(Mat& image) {
+	namedWindow("Image", CV_WINDOW_AUTOSIZE);
+	imshow("Image", image);
+	waitKey(0);
+}
 
 	//for (int i = 0; i < number_of_painting; i++) {
 	//	// Write image
