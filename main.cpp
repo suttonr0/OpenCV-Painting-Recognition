@@ -98,12 +98,12 @@ int main(int argc, const char** argv) {
 		// Mean shift clustering/segmentation
 		//pyrMeanShiftFiltering(galleryImages[i], mean_shift_image, 40, 30, 2);  // input, output, sp (spatial window radius), sr (colour window radius)
 		//floodFillPostprocess(mean_shift_image, Scalar::all(2));
-		
+
 		int currentMaxColor = 0;
 		Mat image = mgalleryImages[i].clone();
 		vector<int> maxColorValue(3);
 		vector<vector<vector<int>>> colorCounter(256, vector<vector<int>>(256, vector<int>(256, 0)));
-		for (int y = 0;y<galleryImages[i].rows;y++)
+		for (int y = 0;y < galleryImages[i].rows;y++)
 		{
 			for (int x = 0;x < galleryImages[i].cols;x++)
 			{
@@ -125,17 +125,17 @@ int main(int argc, const char** argv) {
 		// Set all "wall" BGR values to zero, all others to 255
 
 		Mat wallImage = mgalleryImages[i].clone();  // Copy by reference
-		for (int y = 0;y < galleryImages[i].rows;y++){
-			for (int x = 0;x < galleryImages[i].cols;x++){
+		for (int y = 0;y < galleryImages[i].rows;y++) {
+			for (int x = 0;x < galleryImages[i].cols;x++) {
 				// get pixel
 				Vec3b color = wallImage.at<Vec3b>(Point(x, y));
 				if (color[0] < maxColorValue[0] + 15 && color[1] < maxColorValue[1] + 15 && color[2] < maxColorValue[2] + 15 &&
-					color[0] > maxColorValue[0] - 15 && color[1] > maxColorValue[1] - 15 && color[2] > maxColorValue[2] - 15){
+					color[0] > maxColorValue[0] - 15 && color[1] > maxColorValue[1] - 15 && color[2] > maxColorValue[2] - 15) {
 					color[0] = 0;
 					color[1] = 0;
 					color[2] = 0;
 				}
-				else{
+				else {
 					color[0] = 255;  // color.val[0]
 					color[1] = 255;
 					color[2] = 255;
@@ -146,7 +146,7 @@ int main(int argc, const char** argv) {
 		}
 		// Convert to greyscale image format
 		Mat grey_image = Mat(galleryImages[i].size(), galleryImages[i].type());
-		cvtColor(wallImage, grey_image, CV_BGR2GRAY); 
+		cvtColor(wallImage, grey_image, CV_BGR2GRAY);
 		// Binary threshold
 		Mat binary_image = Mat(galleryImages[i].size(), galleryImages[i].type());
 		threshold(grey_image, binary_image, 128, 255, THRESH_BINARY);
@@ -166,8 +166,7 @@ int main(int argc, const char** argv) {
 			approxPolyDP(Mat(contours[contour_number]), contours_poly[contour_number], 3, true);
 			boundRect[contour_number] = boundingRect(Mat(contours_poly[contour_number]));
 			float areaOfContour = contourArea(contours[contour_number]);
-			printf("%f\n", areaOfContour);
-			
+
 			if (areaOfContour > 15000.0) {  // Contour Area threshold
 				int bottomYCoord = boundRect[contour_number].y + boundRect[contour_number].height;
 				if (bottomYCoord < (galleryImages[i].rows - 2)) {  // Make sure it's not the ground
@@ -176,17 +175,69 @@ int main(int argc, const char** argv) {
 					Mat contours_image = Mat::zeros(binary_image.size(), CV_8UC3);
 					drawContours(contours_image, contours, contour_number, colour, CV_FILLED, 8, hierarchy);
 					Mat temp = contours_image.clone();
-					Mat temp_grey_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+					Mat temp_grey_image;
 					cvtColor(temp, temp_grey_image, CV_BGR2GRAY);
-					// Binary threshold
-					Mat temp_binary_image = Mat(galleryImages[i].size(), galleryImages[i].type());
+					//// Binary threshold
+					Mat temp_binary_image;
 					threshold(temp_grey_image, temp_binary_image, 128, 255, THRESH_BINARY);
+					temp_binary_image.convertTo(temp_binary_image, CV_8UC1);
 					paintingMask.push_back(temp_binary_image);
 					rectangle(galleryImages[i], boundRect[contour_number], colour, 2, 8, 0);
 				}
 			}
 		}
+
+
+		Mat hsv_image;
+		cvtColor(galleryImages[i], hsv_image, COLOR_BGR2HSV);
+
+		Mat hsv_painting1;
+		cvtColor(paintingImages[0], hsv_painting1, COLOR_BGR2HSV);
+
+		Mat hsv_painting2;
+		cvtColor(paintingImages[1], hsv_painting2, COLOR_BGR2HSV);
+
+		Mat hsv_painting3;
+		cvtColor(paintingImages[2], hsv_painting3, COLOR_BGR2HSV);
+
+		Mat hsv_painting4;
+		cvtColor(paintingImages[3], hsv_painting4, COLOR_BGR2HSV);
+
+		Mat hsv_painting5;
+		cvtColor(paintingImages[4], hsv_painting5, COLOR_BGR2HSV);
+
+		// Histogram setup variables
+		int h_bins = 50; int s_bins = 60;
+		int histSize[] = { h_bins, s_bins };
+		// hue varies from 0 to 179, saturation from 0 to 255
+		float h_ranges[] = { 0, 180 };
+		float s_ranges[] = { 0, 256 };
+		const float* ranges[] = { h_ranges, s_ranges };
+		int channels[] = { 0, 1 };
+		// ---------------------------
 		
+		MatND hist_base;
+		MatND hist_painting1;
+
+		calcHist(&hsv_image, 1, channels, paintingMask[0], hist_base, 2, histSize, ranges, true, false);
+		normalize(hist_base, hist_base, 0, 1, NORM_MINMAX, -1, Mat());
+
+		calcHist(&hsv_painting1, 1, channels, Mat(), hist_painting1, 2, histSize, ranges, true, false);
+		normalize(hist_painting1, hist_painting1, 0, 1, NORM_MINMAX, -1, Mat());
+
+		for (int k = 0; k < 4; k++){
+			int compare_method = k;
+			double hist_comparison_self = compareHist(hist_base, hist_base, compare_method);
+			double hist_comparison_p1 = compareHist(hist_base, hist_painting1, compare_method);
+			printf(" Method [%d] self, painting1: %f, %f\n", i, hist_comparison_self, hist_comparison_p1);
+		}
+
+
+		// Bitwise AND to get paiting from original image
+		//for (int j = 0; j < paintingMask.size(); j++) {
+		//	bitwise_and(paintingMask[j], galleryImages[i], paintingMask[j]);
+		//}
+
 		//You can check whether a contour with index i is inside another by checking if hierarchy[0,i,3] equals -1 or not. 
 		//If it is different from -1, then your contour is inside another.
 
