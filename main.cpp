@@ -206,6 +206,9 @@ int main(int argc, const char** argv) {
 		Mat hsv_painting5;
 		cvtColor(paintingImages[4], hsv_painting5, COLOR_BGR2HSV);
 
+		Mat hsv_painting6;
+		cvtColor(paintingImages[5], hsv_painting6, COLOR_BGR2HSV);
+
 		// Histogram setup variables
 		int h_bins = 50; int s_bins = 60;
 		int histSize[] = { h_bins, s_bins };
@@ -218,18 +221,46 @@ int main(int argc, const char** argv) {
 		
 		MatND hist_base;
 		MatND hist_painting1;
-
-		calcHist(&hsv_image, 1, channels, paintingMask[0], hist_base, 2, histSize, ranges, true, false);
-		normalize(hist_base, hist_base, 0, 1, NORM_MINMAX, -1, Mat());
+		MatND hist_painting2;
+		MatND hist_painting3;
+		MatND hist_painting4;
+		MatND hist_painting5;
+		MatND hist_painting6;
 
 		calcHist(&hsv_painting1, 1, channels, Mat(), hist_painting1, 2, histSize, ranges, true, false);
 		normalize(hist_painting1, hist_painting1, 0, 1, NORM_MINMAX, -1, Mat());
 
-		for (int k = 0; k < 4; k++){
-			int compare_method = k;
-			double hist_comparison_self = compareHist(hist_base, hist_base, compare_method);
-			double hist_comparison_p1 = compareHist(hist_base, hist_painting1, compare_method);
-			printf(" Method [%d] self, painting1: %f, %f\n", i, hist_comparison_self, hist_comparison_p1);
+		calcHist(&hsv_painting2, 1, channels, Mat(), hist_painting2, 2, histSize, ranges, true, false);
+		normalize(hist_painting2, hist_painting2, 0, 1, NORM_MINMAX, -1, Mat());
+
+		calcHist(&hsv_painting3, 1, channels, Mat(), hist_painting3, 2, histSize, ranges, true, false);
+		normalize(hist_painting3, hist_painting3, 0, 1, NORM_MINMAX, -1, Mat());
+
+		calcHist(&hsv_painting4, 1, channels, Mat(), hist_painting4, 2, histSize, ranges, true, false);
+		normalize(hist_painting4, hist_painting4, 0, 1, NORM_MINMAX, -1, Mat());
+
+		calcHist(&hsv_painting5, 1, channels, Mat(), hist_painting5, 2, histSize, ranges, true, false);
+		normalize(hist_painting5, hist_painting5, 0, 1, NORM_MINMAX, -1, Mat());
+
+		calcHist(&hsv_painting6, 1, channels, Mat(), hist_painting6, 2, histSize, ranges, true, false);
+		normalize(hist_painting6, hist_painting6, 0, 1, NORM_MINMAX, -1, Mat());
+
+
+		for (int j = 0; j < paintingMask.size(); j++) {
+			calcHist(&hsv_image, 1, channels, paintingMask[j], hist_base, 2, histSize, ranges, true, false);  // Uses mask for each painting
+			normalize(hist_base, hist_base, 0, 1, NORM_MINMAX, -1, Mat());
+
+			for (int k = 0; k < 4; k++) {
+				int compare_method = k;
+				double hist_comparison_p1 = compareHist(hist_base, hist_painting1, compare_method);
+				double hist_comparison_p2 = compareHist(hist_base, hist_painting2, compare_method);
+				double hist_comparison_p3 = compareHist(hist_base, hist_painting3, compare_method);
+				double hist_comparison_p4 = compareHist(hist_base, hist_painting4, compare_method);
+				double hist_comparison_p5 = compareHist(hist_base, hist_painting5, compare_method);
+				double hist_comparison_p6 = compareHist(hist_base, hist_painting6, compare_method);
+				printf("Gallery Painting [%d]. Gallery Number [%d]. Method [%d]:\nPainting 1: %f\nPainting 2: %f\nPainting 3: %f\nPainting 4: %f\nPainting 5: %f\nPainting 6: %f\n", j, i, k, 
+					hist_comparison_p1, hist_comparison_p2, hist_comparison_p3, hist_comparison_p4, hist_comparison_p5, hist_comparison_p6);
+			}
 		}
 
 
